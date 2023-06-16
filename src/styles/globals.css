@@ -79,3 +79,23 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
+
+.editor-container {
+  width: 100%;
+}
+
+.editor-container ul {
+  padding-left: 2rem;
+}
+
+.editor-container ul :where(li[dir], li:has(> br)) {
+  list-style: disc;
+}
+
+.editor-container ul ul :where(li[dir], li:has(> br)) {
+  list-style: circle;
+}
+
+.editor-container ul ul ul :where(li[dir], li:has(> br)) {
+  list-style: square;
+}
