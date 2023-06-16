@@ -60,6 +60,7 @@ model User {
     image         String?
     accounts      Account[]
     sessions      Session[]
+    Lecture       Lecture[]
 }
 
 model VerificationToken {
@@ -68,4 +69,33 @@ model VerificationToken {
     expires    DateTime
 
     @@unique([identifier, token])
+}
+
+model Lecture {
+    id    String @id @default(cuid())
+    topic String
+    title String
+
+    keywords Json?
+
+    userId String
+    user   User   @relation(fields: [userId], references: [id])
+
+    transcript Json
+    note       Note?
+
+    @@index([userId])
+    @@map("lectures")
+}
+
+model Note {
+    id              String @id @default(cuid())
+    content         Json
+    nodeWordMapping Json
+
+    lectureId String  @unique
+    lecture   Lecture @relation(fields: [lectureId], references: [id])
+
+    @@index([lectureId])
+    @@map("notes")
 }
