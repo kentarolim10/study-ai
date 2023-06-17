@@ -1,5 +1,5 @@
-import { $getRoot, $getSelection, type EditorState } from "lexical";
-import { useEffect } from "react";
+import {  TextNode } from "lexical";
+import { type Ref, useEffect, forwardRef, useImperativeHandle } from "react";
 import { TableNode, TableRowNode, TableCellNode } from "@lexical/table";
 import { ListNode, ListItemNode } from "@lexical/list";
 import { LinkNode } from "@lexical/link";
@@ -17,7 +17,6 @@ import { MarkdownShortcutPlugin } from "@lexical/react/LexicalMarkdownShortcutPl
 import { TRANSFORMERS } from "@lexical/markdown";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
-import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { TreeView } from "@lexical/react/LexicalTreeView";
 
@@ -32,18 +31,6 @@ const theme = {
     underlineStrikethrough: "underlined-line-through",
   },
 };
-
-// When the editor changes, you can get notified via the
-// LexicalOnChangePlugin!
-function onChange(editorState: EditorState) {
-  editorState.read(() => {
-    // Read the contents of the EditorState here.
-    const root = $getRoot();
-    const selection = $getSelection();
-
-    //console.log(root, selection);
-  });
-}
 
 // Lexical React plugins are React components, which makes them
 // highly composable. Furthermore, you can lazy load plugins if
@@ -67,7 +54,19 @@ function onError(error: Error) {
   throw error;
 }
 
-export default function Editor({}) {
+type EditorProps = {
+  addKeyword: (nodeId: string) => void;
+  removeKeyword: (nodeId: string) => void;
+};
+
+export type GetSerializedEditorState = {
+  getSerializedEditorState: () => string;
+};
+
+export default forwardRef(function Editor(
+  { addKeyword, removeKeyword }: EditorProps,
+  ref: Ref<GetSerializedEditorState>
+) {
   const initialConfig = {
     namespace: "MyEditor",
     nodes: [
@@ -87,7 +86,7 @@ export default function Editor({}) {
 
   return (
     <>
-      <div className="editor-container relative border-input border-2 rounded">
+      <div className="editor-container relative rounded border-2 border-input">
         <LexicalComposer initialConfig={initialConfig}>
           <RichTextPlugin
             contentEditable={<ContentEditable />}
@@ -99,7 +98,6 @@ export default function Editor({}) {
             ErrorBoundary={LexicalErrorBoundary}
           />
 
-          <OnChangePlugin onChange={onChange} />
           <HistoryPlugin />
           <MyCustomAutoFocusPlugin />
           <TabIndentationPlugin />
@@ -109,41 +107,44 @@ export default function Editor({}) {
           <LinkPlugin />
           <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
           <TabIndentationPlugin />
+          <TranscriptKeyPlugin
+            addKeyword={addKeyword}
+            removeKeyword={removeKeyword}
+          />
+          <GetSerializedEditorStatePlugin ref={ref} />
         </LexicalComposer>
       </div>
     </>
   );
-}
+});
 
-function ExportPlugin() {
-  const [editor] = useLexicalComposerContext();
+const GetSerializedEditorStatePlugin = forwardRef(
+  function GetSerializedEditorState(_, ref: Ref<GetSerializedEditorState>) {
+    const [editor] = useLexicalComposerContext();
 
-  return (
-    <button
-      onClick={() => {
-        const json = editor.getEditorState().toJSON();
-        console.log(json);
-      }}
-    >
-      serialize
-    </button>
-  );
-}
-/*
-function TranscriptKeyPlugin() {
+    useImperativeHandle(ref, () => ({
+      getSerializedEditorState() {
+        return JSON.stringify(editor.getEditorState());
+      },
+    }));
+
+    return null;
+  }
+);
+
+function TranscriptKeyPlugin({
+  addKeyword,
+  removeKeyword,
+}: Pick<EditorProps, "addKeyword" | "removeKeyword">) {
   const [editor] = useLexicalComposerContext();
-  const noteCtx = useNoteContext();
 
   useEffect(() => {
     return editor.registerMutationListener(TextNode, (idMutation) => {
       for (const [key, value] of idMutation.entries()) {
-        // console.log("editor");
-        // console.log(editor);
-        noteCtx.updateSerializedJson(JSON.stringify(editor.getEditorState()));
         if (value === "created") {
-          noteCtx?.addWordKeyToNode(key);
+          addKeyword(key);
         } else if (value === "destroyed") {
-          noteCtx?.removeKeywordFromNode(key);
+          removeKeyword(key);
         }
       }
     });
@@ -151,7 +152,7 @@ function TranscriptKeyPlugin() {
 
   return null;
 }
-*/
+
 function TreeViewPlugin() {
   const [editor] = useLexicalComposerContext();
   return (

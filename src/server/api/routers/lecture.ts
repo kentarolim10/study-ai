@@ -87,9 +87,19 @@ export const lectureRouter = createTRPCRouter({
         });
       }
 
+      const nodeIdToWord = noteSchema.safeParse(
+        JSON.parse(lecture.note.nodeWordMapping?.toString() ?? "{}") as unknown
+      );
+      if (!nodeIdToWord.success) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Invalid nodeWordMapping format",
+        });
+      }
+
       return {
         ...lecture,
-        note: lecture.note,
+        nodeIdToWord: new Map(Object.entries(nodeIdToWord.data)),
         keywords: keywords.data,
         transcript: transcript.data,
       };
@@ -104,3 +114,5 @@ const transcriptSchema = z
     importance: z.number(),
   })
   .array();
+const noteSchema = z
+  .record(z.number());
