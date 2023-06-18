@@ -44,17 +44,19 @@ export default function EditorTranscriptClient() {
 
   const editorRef = useRef<GetSerializedEditorState>(null);
 
-  const formattedTranscript = lecture
-    ? transcript.split(" ").map((word) => {
-        return {
-          id: uuid(),
-          word,
-          importance: Object.hasOwn(lecture.keywords, word)
-            ? // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-              lecture.keywords[word]!
-            : 0,
-        };
-      })
+  const formattedTranscript = transcript.length
+    ? lecture
+      ? transcript.split(" ").map((word) => {
+          return {
+            id: uuid(),
+            word,
+            importance: Object.hasOwn(lecture.keywords, word)
+              ? // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                lecture.keywords[word]!
+              : 0,
+          };
+        })
+      : []
     : [];
 
   if (lecture) {
@@ -83,7 +85,7 @@ export default function EditorTranscriptClient() {
 
   useEffect(() => {
     if (!editorRef.current) return;
-    const id = setInterval(save, 10000);
+    const id = setInterval(save, 10000000000000);
     return () => clearInterval(id);
     // Workaround until useEffectEvent is stable
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -96,7 +98,7 @@ export default function EditorTranscriptClient() {
   if (!lecture) {
     return <div>Somethings wrong</div>;
   }
-   
+
   const addKeyword = (nodeId: string) => {
     if (!formattedTranscript.length || !listening) return;
 
@@ -120,7 +122,13 @@ export default function EditorTranscriptClient() {
   return (
     <>
       <section className="flex justify-end gap-2">
-        <Button onClick={() => {save()}}>Save</Button>
+        <Button
+          onClick={() => {
+            save();
+          }}
+        >
+          Save
+        </Button>
         <Controller
           listening={listening}
           startListening={startListening}
