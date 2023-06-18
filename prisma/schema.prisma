@@ -90,7 +90,7 @@ model Lecture {
 
 model Note {
   id              String @id @default(cuid())
-  content         Json
+  content         Json?
   nodeWordMapping Json
 
   lectureId String  @unique

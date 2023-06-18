@@ -1,4 +1,4 @@
-import {  TextNode } from "lexical";
+import {  EditorState, SerializedEditorState, SerializedLexicalNode, TextNode } from "lexical";
 import { type Ref, useEffect, forwardRef, useImperativeHandle } from "react";
 import { TableNode, TableRowNode, TableCellNode } from "@lexical/table";
 import { ListNode, ListItemNode } from "@lexical/list";
@@ -57,18 +57,20 @@ function onError(error: Error) {
 type EditorProps = {
   addKeyword: (nodeId: string) => void;
   removeKeyword: (nodeId: string) => void;
+  editorState: SerializedEditorState<SerializedLexicalNode> | null;
 };
 
 export type GetSerializedEditorState = {
-  getSerializedEditorState: () => string;
+  getSerializedEditorState: () => SerializedEditorState<SerializedLexicalNode>;
 };
 
 export default forwardRef(function Editor(
-  { addKeyword, removeKeyword }: EditorProps,
+  { addKeyword, removeKeyword, editorState }: EditorProps,
   ref: Ref<GetSerializedEditorState>
 ) {
   const initialConfig = {
     namespace: "MyEditor",
+    editorState: editorState ? JSON.stringify(editorState) : undefined,
     nodes: [
       TableNode,
       TableCellNode,
@@ -124,7 +126,7 @@ const GetSerializedEditorStatePlugin = forwardRef(
 
     useImperativeHandle(ref, () => ({
       getSerializedEditorState() {
-        return JSON.stringify(editor.getEditorState());
+        return editor.getEditorState().toJSON();
       },
     }));
 

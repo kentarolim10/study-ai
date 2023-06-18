@@ -1,10 +1,26 @@
 import { TRPCError } from "@trpc/server";
+import {
+  EditorState,
+  SerializedEditorState,
+  SerializedLexicalNode,
+} from "lexical";
 import { z } from "zod";
 import {
   createTRPCRouter,
   publicProcedure,
   protectedProcedure,
 } from "~/server/api/trpc";
+import { Note } from "@prisma/client";
+
+const keywordSchema = z.record(z.number());
+const transcriptSchema = z
+  .object({
+    id: z.string(),
+    word: z.string(),
+    importance: z.number(),
+  })
+  .array();
+const noteSchema = z.record(z.number());
 
 export const lectureRouter = createTRPCRouter({
   hello: publicProcedure
@@ -26,8 +42,8 @@ export const lectureRouter = createTRPCRouter({
         data: {
           class: input.className,
           title: input.titleName,
-          keywords: "{}",
-          transcript: "[]",
+          keywords: {},
+          transcript: [],
           userId: ctx.session.user.id,
         },
       });
@@ -35,8 +51,7 @@ export const lectureRouter = createTRPCRouter({
 
       const note = await ctx.prisma.note.create({
         data: {
-          content: "[]",
-          nodeWordMapping: "{}",
+          nodeWordMapping: {},
           lectureId: res.id,
         },
       });
@@ -60,9 +75,7 @@ export const lectureRouter = createTRPCRouter({
         return null;
       }
 
-      const transcript = transcriptSchema.safeParse(
-        JSON.parse(lecture.transcript?.toString() ?? "[]") as unknown
-      );
+      const transcript = transcriptSchema.safeParse(lecture.transcript);
       if (!transcript.success) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -77,9 +90,7 @@ export const lectureRouter = createTRPCRouter({
         });
       }
 
-      const keywords = keywordSchema.safeParse(
-        JSON.parse(lecture.keywords?.toString() ?? "{}") as unknown
-      );
+      const keywords = keywordSchema.safeParse(lecture.keywords);
       if (!keywords.success) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -87,9 +98,7 @@ export const lectureRouter = createTRPCRouter({
         });
       }
 
-      const nodeIdToWord = noteSchema.safeParse(
-        JSON.parse(lecture.note.nodeWordMapping?.toString() ?? "{}") as unknown
-      );
+      const nodeIdToWord = noteSchema.safeParse(lecture.note.nodeWordMapping);
       if (!nodeIdToWord.success) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -102,17 +111,38 @@ export const lectureRouter = createTRPCRouter({
         nodeIdToWord: new Map(Object.entries(nodeIdToWord.data)),
         keywords: keywords.data,
         transcript: transcript.data,
+        // IDK why type isn't showing null but it can be null
+        editorState: lecture.note.content
+          ? (lecture.note
+              .content as unknown as SerializedEditorState<SerializedLexicalNode>)
+          : null,
       };
     }),
-});
 
-const keywordSchema = z.record(z.number());
-const transcriptSchema = z
-  .object({
-    id: z.string(),
-    word: z.string(),
-    importance: z.number(),
-  })
-  .array();
-const noteSchema = z
-  .record(z.number());
+  save: protectedProcedure
+    .input(
+      z.object({
+        lectureId: z.string(),
+        transcript: transcriptSchema,
+        editorState: z.record(z.any()),
+        nodeIdToWord: z.map(z.string(), z.number()),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const nodeIdToWord = Object.fromEntries(input.nodeIdToWord.entries());
+      await ctx.prisma.lecture.update({
+        where: {
+          id: input.lectureId,
+        },
+        data: {
+          transcript: input.transcript,
+          note: {
+            update: {
+              content: input.editorState,
+              nodeWordMapping: nodeIdToWord,
+            },
+          },
+        },
+      });
+    }),
+});

@@ -1,5 +1,5 @@
-import { api } from "~/utils/api";
-import Editor, { GetSerializedEditorState } from "./Editor";
+import { type RouterOutputs, api } from "~/utils/api";
+import Editor, { type GetSerializedEditorState } from "./Editor";
 import Transcript from "./Transcript";
 import SpeechRecognition, {
   useSpeechRecognition,
@@ -9,7 +9,7 @@ import { Button } from "../ui/Button";
 import { createSpeechlySpeechRecognition } from "@speechly/speech-recognition-polyfill";
 import { v4 as uuid } from "uuid";
 import { env } from "~/env.mjs";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 
 const appId = env.NEXT_PUBLIC_SPEECHLY_APP_ID;
 
@@ -22,6 +22,10 @@ export type Word = {
   importance: number;
 };
 
+type Transcript = NonNullable<
+  RouterOutputs["lecture"]["getLecture"]
+>["transcript"];
+
 export default function EditorTranscriptClient() {
   const router = useRouter();
   const {
@@ -30,11 +34,7 @@ export default function EditorTranscriptClient() {
     browserSupportsSpeechRecognition,
     isMicrophoneAvailable,
   } = useSpeechRecognition();
-  const {
-    data: lecture,
-    isLoading,
-    ...rest
-  } = api.lecture.getLecture.useQuery(
+  const { data: lecture, isLoading } = api.lecture.getLecture.useQuery(
     { lectureId: router.query.lectureId as string },
     {
       enabled: !!router.query.lectureId && !transcript.length,
@@ -43,10 +43,51 @@ export default function EditorTranscriptClient() {
   );
 
   const editorRef = useRef<GetSerializedEditorState>(null);
-  const serializedEditorStateRef = useRef<string>();
-  const updateSerializedEditoState = (serializedEditorState: string) => {
-    serializedEditorStateRef.current = serializedEditorState;
+
+  const formattedTranscript = lecture
+    ? transcript.split(" ").map((word) => {
+        return {
+          id: uuid(),
+          word,
+          importance: Object.hasOwn(lecture.keywords, word)
+            ? // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              lecture.keywords[word]!
+            : 0,
+        };
+      })
+    : [];
+
+  if (lecture) {
+    formattedTranscript.unshift(...lecture.transcript);
+  }
+
+  const saveLecture = api.lecture.save.useMutation();
+
+  const save = () => {
+    if (!lecture) return;
+
+    const serializedEditorState = editorRef.current?.getSerializedEditorState();
+
+    if (!serializedEditorState) return;
+
+    saveLecture.mutate({
+      lectureId: lecture.id,
+      transcript: clientStateRef.current,
+      editorState: serializedEditorState,
+      nodeIdToWord: lecture.nodeIdToWord,
+    });
   };
+
+  const clientStateRef = useRef<Word[]>([]);
+  clientStateRef.current = formattedTranscript;
+
+  useEffect(() => {
+    if (!editorRef.current) return;
+    const id = setInterval(save, 10000);
+    return () => clearInterval(id);
+    // Workaround until useEffectEvent is stable
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editorRef, lecture]);
 
   if (isLoading) {
     return <div>Loading...</div>;
@@ -55,19 +96,7 @@ export default function EditorTranscriptClient() {
   if (!lecture) {
     return <div>Somethings wrong</div>;
   }
-
-  const formattedTranscript = transcript.split(" ").map((word) => {
-    return {
-      id: uuid(),
-      word,
-      importance: Object.hasOwn(lecture.keywords, word)
-        ? // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          lecture.keywords[word]!
-        : 0,
-    };
-  });
-  formattedTranscript.unshift(...lecture.transcript);
-
+   
   const addKeyword = (nodeId: string) => {
     if (!formattedTranscript.length || !listening) return;
 
@@ -91,7 +120,7 @@ export default function EditorTranscriptClient() {
   return (
     <>
       <section className="flex justify-end gap-2">
-        <Button onClick={() => console.log(editorRef.current?.getSerializedEditorState())}>Save</Button>
+        <Button onClick={() => {save()}}>Save</Button>
         <Controller
           listening={listening}
           startListening={startListening}
@@ -106,6 +135,7 @@ export default function EditorTranscriptClient() {
             ref={editorRef}
             addKeyword={addKeyword}
             removeKeyword={removeKeyword}
+            editorState={lecture.editorState}
           />
         </div>
         <div className="flex flex-col gap-4">
