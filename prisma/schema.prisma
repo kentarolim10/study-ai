@@ -74,7 +74,7 @@ model VerificationToken {
 model Lecture {
   id    String @id @default(cuid())
   class String
-  title String
+  topic String
 
   keywords Json?
 

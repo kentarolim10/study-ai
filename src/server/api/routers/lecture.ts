@@ -23,25 +23,23 @@ const transcriptSchema = z
 const noteSchema = z.record(z.number());
 
 export const lectureRouter = createTRPCRouter({
-  hello: publicProcedure
-    .input(z.object({ text: z.string() }))
-    .query(({ input }) => {
-      return {
-        greeting: `Hello ${input.text}`,
-      };
+  getAll: protectedProcedure
+    .query(async ({ ctx }) => {
+      const lectures = await ctx.prisma.lecture.findMany({ select: {
+        id: true,
+        class: true,
+      }});
+
+      return lectures;
     }),
 
-  getAll: publicProcedure.query(({ ctx }) => {
-    return ctx.prisma.example.findMany();
-  }),
-
   createLecture: protectedProcedure
-    .input(z.object({ className: z.string(), titleName: z.string() }))
+    .input(z.object({ className: z.string(), topic: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const res = await ctx.prisma.lecture.create({
         data: {
           class: input.className,
-          title: input.titleName,
+          topic: input.topic,
           keywords: {},
           transcript: [],
           userId: ctx.session.user.id,

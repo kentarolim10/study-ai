@@ -4,12 +4,12 @@ import Layout from "~/components/ui/Layout";
 import { useRouter } from "next/router";
 import { Button } from "~/components/ui/Button";
 import { Input } from "~/components/ui/Input";
-import { SetStateAction, useState } from "react";
+import { useState } from "react";
 
 export default function Index() {
   const router = useRouter();
   const [lectureName, setLectureName] = useState("");
-  const [className, setClassName] = useState("");
+  const [topic, setTopic] = useState("");
 
   const createLecture = api.lecture.createLecture.useMutation({
     async onSuccess(lecture) {
@@ -20,7 +20,7 @@ export default function Index() {
   });
 
   const createLectureHandler = () => {
-    createLecture.mutate({ titleName: lectureName, className: className });
+    createLecture.mutate({ className: lectureName, topic: topic });
   };
 
   const startLecture = async (lectureId: string) => {
@@ -32,18 +32,14 @@ export default function Index() {
       <Header />
       <main>
         <Input
-          value={className}
-          onChange={(e: { target: { value: SetStateAction<string> } }) =>
-            setClassName(e.target.value)
-          }
+          value={topic}
+          onChange={(e) => setTopic(e.target.value)}
           placeholder="Class name"
         ></Input>
         <Input
           value={lectureName}
-          onChange={(e: { target: { value: SetStateAction<string> } }) =>
-            setLectureName(e.target.value)
-          }
-          placeholder="Lecture Name"
+          onChange={(e) => setLectureName(e.target.value)}
+          placeholder="Topic"
         ></Input>
         <Button onClick={createLectureHandler}>Start Lecture</Button>
       </main>
