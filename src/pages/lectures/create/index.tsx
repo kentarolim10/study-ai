@@ -41,7 +41,12 @@ export default function Index() {
           onChange={(e) => setLectureName(e.target.value)}
           placeholder="Topic"
         ></Input>
-        <Button onClick={createLectureHandler}>Start Lecture</Button>
+        <Button
+          onClick={createLectureHandler}
+          disabled={createLecture.isLoading}
+        >
+          Start Lecture
+        </Button>
       </main>
     </Layout>
   );
