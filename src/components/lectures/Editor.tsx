@@ -1,4 +1,9 @@
-import {  EditorState, SerializedEditorState, SerializedLexicalNode, TextNode } from "lexical";
+import {
+  EditorState,
+  SerializedEditorState,
+  SerializedLexicalNode,
+  TextNode,
+} from "lexical";
 import { type Ref, useEffect, forwardRef, useImperativeHandle } from "react";
 import { TableNode, TableRowNode, TableCellNode } from "@lexical/table";
 import { ListNode, ListItemNode } from "@lexical/list";
@@ -89,7 +94,10 @@ export default forwardRef(function Editor(
   return (
     <>
       <div className="editor-container relative rounded border-2 border-input">
-        <LexicalComposer key={initialConfig.editorState} initialConfig={initialConfig}>
+        <LexicalComposer
+          key={initialConfig.editorState}
+          initialConfig={initialConfig}
+        >
           <RichTextPlugin
             contentEditable={<ContentEditable />}
             placeholder={
