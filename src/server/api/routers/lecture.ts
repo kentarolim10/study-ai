@@ -1,16 +1,13 @@
 import { TRPCError } from "@trpc/server";
 import {
-  EditorState,
-  SerializedEditorState,
-  SerializedLexicalNode,
+  type SerializedEditorState,
+  type SerializedLexicalNode,
 } from "lexical";
 import { z } from "zod";
 import {
   createTRPCRouter,
-  publicProcedure,
   protectedProcedure,
 } from "~/server/api/trpc";
-import { Note } from "@prisma/client";
 
 const keywordSchema = z.record(z.number());
 const transcriptSchema = z

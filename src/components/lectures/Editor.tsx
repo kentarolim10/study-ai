@@ -89,7 +89,7 @@ export default forwardRef(function Editor(
   return (
     <>
       <div className="editor-container relative rounded border-2 border-input">
-        <LexicalComposer initialConfig={initialConfig}>
+        <LexicalComposer key={initialConfig.editorState} initialConfig={initialConfig}>
           <RichTextPlugin
             contentEditable={<ContentEditable />}
             placeholder={

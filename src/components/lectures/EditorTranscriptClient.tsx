@@ -85,7 +85,7 @@ export default function EditorTranscriptClient() {
 
   useEffect(() => {
     if (!editorRef.current) return;
-    const id = setInterval(save, 10000000000000);
+    const id = setInterval(save, 20000);
     return () => clearInterval(id);
     // Workaround until useEffectEvent is stable
     // eslint-disable-next-line react-hooks/exhaustive-deps
