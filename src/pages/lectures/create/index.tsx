@@ -8,7 +8,7 @@ import { useState } from "react";
 
 export default function Index() {
   const router = useRouter();
-  const [lectureName, setLectureName] = useState("");
+  const [className, setClassName] = useState("");
   const [topic, setTopic] = useState("");
 
   const createLecture = api.lecture.createLecture.useMutation({
@@ -20,7 +20,7 @@ export default function Index() {
   });
 
   const createLectureHandler = () => {
-    createLecture.mutate({ className: lectureName, topic: topic });
+    createLecture.mutate({ className: className, topic: topic });
   };
 
   const startLecture = async (lectureId: string) => {
@@ -30,20 +30,23 @@ export default function Index() {
   return (
     <Layout>
       <Header />
-      <main>
+      <main className="flex flex-col items-center justify-center py-40">
+        <Input
+          value={className}
+          onChange={(e) => setClassName(e.target.value)}
+          placeholder="Class name"
+          className="mb-4 w-96"
+        ></Input>
         <Input
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
-          placeholder="Class name"
-        ></Input>
-        <Input
-          value={lectureName}
-          onChange={(e) => setLectureName(e.target.value)}
           placeholder="Topic"
+          className="mb-16 w-96"
         ></Input>
         <Button
           onClick={createLectureHandler}
-          disabled={createLecture.isLoading}
+          disabled={createLecture.isLoading || !className || !topic}
+          className="w-96"
         >
           Start Lecture
         </Button>

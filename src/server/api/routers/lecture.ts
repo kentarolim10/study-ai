@@ -1,13 +1,12 @@
+import { Prisma } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import {
   type SerializedEditorState,
   type SerializedLexicalNode,
 } from "lexical";
 import { z } from "zod";
-import {
-  createTRPCRouter,
-  protectedProcedure,
-} from "~/server/api/trpc";
+import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
+import getKeywords from "~/server/keywords";
 
 const keywordSchema = z.record(z.number());
 const transcriptSchema = z
@@ -20,15 +19,16 @@ const transcriptSchema = z
 const noteSchema = z.record(z.number());
 
 export const lectureRouter = createTRPCRouter({
-  getAll: protectedProcedure
-    .query(async ({ ctx }) => {
-      const lectures = await ctx.prisma.lecture.findMany({ select: {
+  getAll: protectedProcedure.query(async ({ ctx }) => {
+    const lectures = await ctx.prisma.lecture.findMany({
+      select: {
         id: true,
         class: true,
-      }});
+      },
+    });
 
-      return lectures;
-    }),
+    return lectures;
+  }),
 
   createLecture: protectedProcedure
     .input(z.object({ className: z.string(), topic: z.string() }))
@@ -42,7 +42,17 @@ export const lectureRouter = createTRPCRouter({
           userId: ctx.session.user.id,
         },
       });
-      //TODO: Get keywords;
+      console.log("getting keywords");
+      const keywords = await getKeywords(input.topic);
+      console.log("after");
+      await ctx.prisma.lecture.update({
+        where: {
+          id: res.id,
+        },
+        data: {
+          keywords: keywords,
+        },
+      });
 
       const note = await ctx.prisma.note.create({
         data: {
@@ -138,6 +148,25 @@ export const lectureRouter = createTRPCRouter({
             },
           },
         },
+      });
+    }),
+
+  getFillerWords: protectedProcedure.query(async ({ ctx }) => {
+    return ctx.prisma.fillerWord.findMany();
+  }),
+
+  addFillerWords: protectedProcedure
+    .input(z.string().array())
+    .mutation(async ({ ctx, input }) => {
+      const fillerWords: { word: string }[] = [];
+      input.forEach((fillerword) => {
+        fillerWords.push({
+          word: fillerword,
+        });
+      });
+      await ctx.prisma.fillerWord.createMany({
+        data: fillerWords,
+        skipDuplicates: true,
       });
     }),
 });

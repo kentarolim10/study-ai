@@ -64,11 +64,9 @@ export default function Transcript({ words }: { words: Word[] }) {
   );
 }
 const importanceStyler = (importance: number) => {
-  if (importance == 0) {
-    return "text-white text-opacity-50";
-  } else if (importance == 1) {
-    return "text-white text-opacity-50";
-  } else {
+  if (importance == 1) {
     return "text-white text-opacity-90 font-bold";
+  } else {
+    return "text-white text-opacity-50";
   }
 };
