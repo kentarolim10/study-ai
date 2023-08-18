@@ -99,3 +99,8 @@ model Note {
   @@index([lectureId])
   @@map("notes")
 }
+
+model FillerWord {
+  id   String @id @default(cuid())
+  word String @unique
+}
